@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字幕配音小助手</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Decorative clay blobs -->
+    <div class="clay-deco clay-deco-1"></div>
+    <div class="clay-deco clay-deco-2"></div>
+    <div class="clay-deco clay-deco-3"></div>
+
+    <header>
+        <h1>字幕配音小助手</h1>
+        <p class="subtitle">上传音视频或 SRT 字幕 → 审阅编辑 → 时间轴对齐配音</p>
+    </header>
+
+    <div class="steps-indicator">
+        <div class="step-dot active" data-step="1">
+            <span class="step-num">1</span>
+            <span class="step-label">上传生成字幕</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-dot" data-step="2">
+            <span class="step-num">2</span>
+            <span class="step-label">审阅编辑字幕</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-dot" data-step="3">
+            <span class="step-num">3</span>
+            <span class="step-label">选择音色配音</span>
+        </div>
+    </div>
+
+    <main>
+        <!-- Step 1: Upload -->
+        <section id="step1" class="step-panel active">
+            <div class="card">
+                <h2>上传音频或视频文件</h2>
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                    <p class="upload-text">点击或拖拽文件到此处</p>
+                    <p class="upload-hint">支持 MP3, WAV, M4A, MP4, MOV, AVI 等格式（最大 200MB）</p>
+                    <input type="file" id="fileInput" accept="audio/*,video/*" hidden>
+                </div>
+                <div id="uploadStatus" class="status-bar hidden">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p id="statusText" class="status-text">正在处理...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 2: Edit subtitles -->
+        <section id="step2" class="step-panel hidden">
+            <div class="card">
+                <div class="card-header">
+                    <h2>审阅和编辑字幕</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-secondary" id="addSubtitleBtn">+ 添加字幕</button>
+                        <button class="btn btn-secondary" id="previewSrtBtn">预览 SRT</button>
+                    </div>
+                </div>
+                <div class="srt-upload-area" id="srtUploadArea">
+                    <div class="srt-upload-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </div>
+                    <div class="srt-upload-text">
+                        <span class="srt-upload-title">导入 SRT 字幕文件</span>
+                        <span class="srt-upload-hint">点击或拖拽 .srt 文件到此处</span>
+                    </div>
+                    <input type="file" id="srtFileInput" accept=".srt" hidden>
+                </div>
+                <div id="srtUploadStatus" class="status-bar hidden">
+                    <p id="srtStatusText" class="status-text"></p>
+                </div>
+                <div id="subtitleList" class="subtitle-list"></div>
+                <div class="card-footer">
+                    <button class="btn btn-secondary" id="backToStep1Btn">上一步</button>
+                    <button class="btn btn-primary" id="toStep3Btn">确认，下一步</button>
+                </div>
+            </div>
+            <!-- SRT Preview Modal -->
+            <div id="srtModal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>SRT 预览</h3>
+                        <button class="modal-close" id="closeModalBtn">&times;</button>
+                    </div>
+                    <pre id="srtPreview" class="srt-preview"></pre>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" id="downloadSrtBtn">下载 SRT 文件</button>
+                        <button class="btn btn-secondary" id="closeModalBtn2">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 3: Synthesize -->
+        <section id="step3" class="step-panel hidden">
+            <div class="card">
+                <h2>选择模型和音色，生成配音</h2>
+                <div class="form-group">
+                    <label>语音合成模型</label>
+                    <select id="modelSelect" class="select-input">
+                        <option value="">请选择模型</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>音色</label>
+                    <div id="voiceList" class="voice-grid"></div>
+                </div>
+                <div id="instructPanel" class="instruct-panel hidden">
+                    <div class="instruct-header">
+                        <div class="instruct-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                            </svg>
+                            <span>Instruct 指令设置</span>
+                        </div>
+                        <button class="instruct-clear-btn" id="instructClearBtn" title="清空指令">×</button>
+                    </div>
+                    <div class="instruct-templates">
+                        <button class="instruct-template-btn" data-template="emotion">设置情感</button>
+                        <button class="instruct-template-btn" data-template="scene_emotion">场景 + 情感</button>
+                        <button class="instruct-template-btn" data-template="role_emotion">角色 + 情感</button>
+                        <button class="instruct-template-btn" data-template="identity_emotion">身份 + 情感</button>
+                    </div>
+                    <div id="instructOptions" class="instruct-options hidden"></div>
+                    <div class="instruct-input-row">
+                        <textarea id="instructText" class="instruct-text-input" rows="2" placeholder="选择上方模板快速生成指令，或直接编辑（仅支持中文，须严格按格式填写，含结尾句号）"></textarea>
+                        <div id="instructError" class="instruct-error hidden"></div>
+                    </div>
+                    <p class="instruct-hint">提示：支持的情感值 neutral / fearful / angry / sad / surprised / happy / disgusted。指令必须使用中文，须严格按格式填写，不可遗漏结尾句号。</p>
+                </div>
+                <div id="synthInfo" class="synth-info hidden">
+                    <div class="synth-info-badge">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                        </svg>
+                    </div>
+                    <div class="synth-info-text">
+                        <span class="synth-info-count" id="synthInfoCount"></span>
+                        <span class="synth-info-mode">时间轴对齐模式</span>
+                    </div>
+                </div>
+                <div id="synthStatus" class="status-bar hidden">
+                    <div class="spinner"></div>
+                    <p class="status-text" id="synthStatusText">正在合成语音，请稍候...</p>
+                    <div class="timeline-progress hidden" id="timelineProgress">
+                        <div class="timeline-counter">
+                            <span id="timelineCurrent">0</span> / <span id="timelineTotal">0</span> 段
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="timelineProgressFill"></div>
+                        </div>
+                        <p class="timeline-status" id="timelineStatusText"></p>
+                    </div>
+                </div>
+                <div id="audioResult" class="audio-result hidden">
+                    <audio id="audioPlayer" controls></audio>
+                    <a id="downloadAudioBtn" class="btn btn-primary" download="配音.mp3">下载音频</a>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-secondary" id="backToStep2Btn">上一步</button>
+                    <button class="btn btn-primary" id="synthesizeBtn">开始合成</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Powered by DashScope API (paraformer-v2 + CosyVoice)</p>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
